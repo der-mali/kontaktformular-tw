@@ -488,7 +488,7 @@ class KontaktformularTW {
         $nachricht = "
 N E U E   K O N T A K T A N F R A G E
 Ü B E R   D A S   K O N T A K T F O R M U L A R
-================================================================================
+
 
 
 NAME:
@@ -575,5 +575,6 @@ Datum: " . date('d.m.Y H:i:s') . "
         return wp_mail($email, $betreff, $nachricht, $headers);
     }
 }
+
 
 new KontaktformularTW();
