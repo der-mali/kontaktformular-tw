@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Kontaktformular TW
  * Description: Ein einfaches Kontaktformular mit Shortcode [contact-form-tw]
- * Version: 20251203.1
+ * Version: 20251206.1
  * Author: der-mali
  */
 
@@ -325,7 +325,7 @@ class KontaktformularTW {
             
             <div class="formular-gruppe">
                 <label for="name">Name *</label>
-                <input type="text" id="name" name="name" value="<?php echo isset($_POST['name']) ? esc_attr($_POST['name']) : ''; ?>" required>
+                <input type="text" id="name" name="name" value="<?php echo isset($_POST['name']) ? esc_attr($_POST['name']) : ''; ?>" minlength="5" required>
                 <span class="fehler-meldung" id="name-fehler">
                     <?php if (!empty($this->form_errors['name'])) echo $this->form_errors['name']; ?>
                 </span>
@@ -333,7 +333,7 @@ class KontaktformularTW {
             
             <div class="formular-gruppe">
                 <label for="telefon">Telefonnummer *</label>
-                <input type="tel" id="telefon" name="telefon" value="<?php echo isset($_POST['telefon']) ? esc_attr($_POST['telefon']) : ''; ?>" required>
+                <input type="tel" id="telefon" name="telefon" value="<?php echo isset($_POST['telefon']) ? esc_attr($_POST['telefon']) : ''; ?>" minlength="5" required>
                 <span class="fehler-meldung" id="telefon-fehler">
                     <?php if (!empty($this->form_errors['telefon'])) echo $this->form_errors['telefon']; ?>
                 </span>
@@ -347,9 +347,17 @@ class KontaktformularTW {
             
             <div class="formular-gruppe">
                 <label for="text">Nachricht *</label>
-                <textarea id="text" name="text" rows="5" required><?php echo isset($_POST['text']) ? esc_textarea($_POST['text']) : ''; ?></textarea>
+                <textarea id="text" name="text" rows="5" minlength="30" required><?php echo isset($_POST['text']) ? esc_textarea($_POST['text']) : ''; ?></textarea>
                 <span class="fehler-meldung" id="text-fehler">
                     <?php if (!empty($this->form_errors['text'])) echo $this->form_errors['text']; ?>
+                </span>
+            </div>
+
+            <div class="formular-gruppe">
+                <label for="name">Validierung: geben Sie mindestens 12 beliebige Zeichen ein *</label>
+                <input type="text" id="name" name="name" value="<?php echo isset($_POST['name']) ? esc_attr($_POST['name']) : ''; ?>" minlength="12" required>
+                <span class="fehler-meldung" id="name-fehler">
+                    <?php if (!empty($this->form_errors['name'])) echo $this->form_errors['name']; ?>
                 </span>
             </div>
             
@@ -575,6 +583,5 @@ Datum: " . date('d.m.Y H:i:s') . "
         return wp_mail($email, $betreff, $nachricht, $headers);
     }
 }
-
 
 new KontaktformularTW();
