@@ -355,8 +355,8 @@ class KontaktformularTW {
 
             <div class="formular-gruppe">
                 <label for="name">Validierung: geben Sie mindestens 12 beliebige Zeichen ein *</label>
-                <input type="text" id="name" name="name" value="<?php echo isset($_POST['name']) ? esc_attr($_POST['name']) : ''; ?>" minlength="12" required>
-                <span class="fehler-meldung" id="name-fehler">
+                <input type="text" id="validierung" name="validierung" value="<?php echo isset($_POST['name']) ? esc_attr($_POST['name']) : ''; ?>" minlength="12" required>
+                <span class="fehler-meldung" id="validierung-fehler">
                     <?php if (!empty($this->form_errors['name'])) echo $this->form_errors['name']; ?>
                 </span>
             </div>
