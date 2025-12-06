@@ -24,13 +24,15 @@ class KontaktformularTW {
         ));
         
         add_shortcode('contact-form-tw', array($this, 'formular_shortcode'));
-        add_action('wp_enqueue_scripts', array($this, 'lade_scripts'));
         
         // Formularverarbeitung bei init
         add_action('init', array($this, 'verarbeite_formular_frueh'));
         
         // CSS inline einbinden
         add_action('wp_head', array($this, 'lade_css'));
+        
+        // JavaScript enqueuen
+        add_action('wp_footer', array($this, 'lade_javascript'));
         
         // Admin Menü hinzufügen
         add_action('admin_menu', array($this, 'add_admin_menu'));
@@ -150,29 +152,8 @@ class KontaktformularTW {
             $this->verarbeite_formular();
         }
     }
-    
-    public function lade_scripts() {
-        wp_enqueue_script('jquery');
-        
-        wp_enqueue_script(
-            'kontaktformular-tw-script',
-            plugin_dir_url(__FILE__) . 'kontaktformular-tw.js',
-            array('jquery'),
-            '4.1',
-            true
-        );
-        
-        wp_localize_script(
-            'kontaktformular_tw_script',
-            'kontaktformular_ajax',
-            array(
-                'ajax_url' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('kontaktformular_nonce')
-            )
-        );
-    }
 
-	public function lade_css() {
+    public function lade_css() {
     ?>
     <style>
     /* Abstand oben reduzieren */
@@ -252,7 +233,6 @@ class KontaktformularTW {
     .fehler-meldung {
         color: #dc3545;
         font-size: 12px;
-        display: block;
         margin-top: 5px;
     }
     
@@ -265,25 +245,26 @@ class KontaktformularTW {
         margin-right: 10px;
         border: none;
         cursor: pointer;
+        font-size: 16px;
     }
     
-#absenden-btn {
-    background-color: #28a745;
-    color: #FFFFFF;
-}
+    #absenden-btn {
+        background-color: #28a745;
+        color: #FFFFFF;
+    }
 
-#absenden-btn:hover:not(:disabled) {
-    background-color: #218838;
-}
+    #absenden-btn:hover:not(:disabled) {
+        background-color: #218838;
+    }
 
-#loeschen-btn {
-    background-color: #dc3545;
-    color: #FFFFFF;
-}
+    #loeschen-btn {
+        background-color: #dc3545;
+        color: #FFFFFF;
+    }
 
-#loeschen-btn:hover {
-    background-color: #c82333;
-}
+    #loeschen-btn:hover {
+        background-color: #c82333;
+    }
     
     /* Erfolgs- und Fehler-Boxen */
     .boxerfolg {
@@ -292,6 +273,7 @@ class KontaktformularTW {
         margin-bottom: 20px;
         border: 2px solid #28a745;
         font-weight: bold;
+        background-color: #f8f9fa;
     }
     
     .boxfehler {
@@ -300,9 +282,71 @@ class KontaktformularTW {
         margin-bottom: 20px;
         border: 2px solid #dc3545;
         font-weight: bold;
+        background-color: #f8f9fa;
     }
     </style>
     <?php
+    }
+
+    public function lade_javascript() {
+        // Nur laden, wenn das Formular auf der Seite ist
+        if (is_singular() && has_shortcode(get_post()->post_content, 'contact-form-tw')) {
+            ?>
+            <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Löschen-Button Funktionalität
+                var loeschenBtn = document.getElementById('loeschen-btn');
+                if (loeschenBtn) {
+                    loeschenBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        
+                        // Formular zurücksetzen
+                        var form = document.getElementById('kontaktformular-tw');
+                        if (form) {
+                            form.reset();
+                        }
+                        
+                        // Fehlermeldungen ausblenden
+                        var fehlerMeldungen = document.querySelectorAll('.fehler-meldung');
+                        fehlerMeldungen.forEach(function(meldung) {
+                            meldung.textContent = '';
+                        });
+                        
+                        // Erfolgs-/Fehlermeldung ausblenden
+                        var meldungDiv = document.getElementById('kontaktformular-tw-meldung');
+                        if (meldungDiv) {
+                            meldungDiv.innerHTML = '';
+                        }
+                        
+                        // Alle Fehler-Boxen entfernen
+                        var boxen = document.querySelectorAll('.boxerfolg, .boxfehler');
+                        boxen.forEach(function(box) {
+                            box.remove();
+                        });
+                        
+                        // Falls Boxen direkt in Formular-Meldung sind
+                        if (meldungDiv) {
+                            var kinder = meldungDiv.querySelectorAll('.boxerfolg, .boxfehler');
+                            kinder.forEach(function(kind) {
+                                kind.remove();
+                            });
+                        }
+                    });
+                }
+                
+                // Validierungsfeld auf &#49;&#50; Zeichen begrenzen
+                var validierungsFeld = document.getElementById('validierung');
+                if (validierungsFeld) {
+                    validierungsFeld.addEventListener('input', function() {
+                        if (this.value.length > 12) {
+                            this.value = this.value.substring(0, 12);
+                        }
+                    });
+                }
+            });
+            </script>
+            <?php
+        }
     }
 
     public function formular_shortcode() {
@@ -354,10 +398,10 @@ class KontaktformularTW {
             </div>
 
             <div class="formular-gruppe">
-                <label for="name">Validierung: geben Sie mindestens 12 beliebige Zeichen ein *</label>
-                <input type="text" id="validierung" name="validierung" value="<?php echo isset($_POST['name']) ? esc_attr($_POST['name']) : ''; ?>" minlength="12" required>
+                <label for="validierung">Validierung: geben Sie genau &#49;&#50; beliebige Zeichen ein *</label>
+                <input type="text" id="validierung" name="validierung" value="<?php echo isset($_POST['validierung']) ? esc_attr($_POST['validierung']) : ''; ?>" minlength="12" maxlength="12" required>
                 <span class="fehler-meldung" id="validierung-fehler">
-                    <?php if (!empty($this->form_errors['name'])) echo $this->form_errors['name']; ?>
+                    <?php if (!empty($this->form_errors['validierung'])) echo $this->form_errors['validierung']; ?>
                 </span>
             </div>
             
@@ -376,7 +420,7 @@ class KontaktformularTW {
             <br>
             
             <div class="formular-buttons">
-                <button type="submit" id="absenden-btn">SENDEN</button>&nbsp;<button type="button" id="loeschen-btn"><small>löschen</small></button>
+                <button type="submit" id="absenden-btn">SENDEN</button>&nbsp;<button type="button" id="loeschen-btn">löschen</button>
             </div>
 
             <!-- SPAM SCHUTZ FELDER AM ENDE DES FORMULARS (unsichtbar) -->
@@ -387,6 +431,7 @@ class KontaktformularTW {
             
             <input type="hidden" name="form_timestamp" value="<?php echo time(); ?>">
         </form>
+        
         <?php
         return ob_get_clean();
     }
@@ -415,6 +460,7 @@ class KontaktformularTW {
         $telefon = sanitize_text_field($_POST['telefon']);
         $email = !empty($_POST['email']) ? sanitize_email($_POST['email']) : '';
         $text = sanitize_textarea_field($_POST['text']);
+        $validierung = sanitize_text_field($_POST['validierung']);
         $datenschutz = isset($_POST['datenschutz']) ? true : false;
         
         // 4. EINFACHE Inhaltsvalidierung
@@ -426,20 +472,25 @@ class KontaktformularTW {
         // Validierung
         $fehler = array();
         
-        if (empty($name)) {
-            $fehler['name'] = '<div class="boxfehler">Bitte geben Sie Ihren Namen ein.</div>';
+        if (empty($name) || strlen($name) < 5) {
+            $fehler['name'] = '<div class="boxfehler">Bitte geben Sie Ihren vollständigen Namen ein (mindestens 5 Zeichen).</div>';
         }
         
-        if (empty($telefon)) {
-            $fehler['telefon'] = '<div class="boxfehler">Bitte geben Sie Ihre Telefonnummer ein.</div>';
+        if (empty($telefon) || strlen($telefon) < 5) {
+            $fehler['telefon'] = '<div class="boxfehler">Bitte geben Sie Ihre Telefonnummer ein (mindestens 5 Zeichen).</div>';
         }
 
-        if (empty($text)) {
-            $fehler['text'] = '<div class="boxfehler">Bitte geben Sie eine Nachricht ein.</div>';
+        if (empty($text) || strlen($text) < 30) {
+            $fehler['text'] = '<div class="boxfehler">Bitte geben Sie eine ausführlichere Nachricht ein (mindestens 30 Zeichen).</div>';
+        }
+        
+        // Validierungsfeld prüfen
+        if (empty($validierung) || strlen($validierung) !== 12) {
+            $fehler['validierung'] = '<div class="boxfehler">Bitte geben Sie genau 12 Zeichen ein.</div>';
         }
         
         if (!$datenschutz) {
-            $fehler['datenschutz'] = '<div class="boxfehler">Bitte stimmen Sie der Datenverarbeitung zu</div>';
+            $fehler['datenschutz'] = '<div class="boxfehler">Bitte stimmen Sie der Datenverarbeitung zu.</div>';
         }
         
         // Wenn Fehler vorhanden sind
@@ -464,7 +515,7 @@ class KontaktformularTW {
             $this->form_message = '<br><div class="boxerfolg">Vielen Dank für Ihre Kontaktaufnahme!<br>Ihre Nachricht wurde erfolgreich versendet.' . (!empty($email) ? '<br>Sie erhalten eine Kopie an Ihre E-Mail-Adresse.' : '') . '</div>';
             
             // Formular zurücksetzen für den nächsten Versuch
-            unset($_POST['name'], $_POST['telefon'], $_POST['email'], $_POST['text'], $_POST['datenschutz']);
+            unset($_POST['name'], $_POST['telefon'], $_POST['email'], $_POST['text'], $_POST['validierung'], $_POST['datenschutz']);
         } else {
             $this->form_message = '<br><div class="boxfehler">Beim Senden der E-Mail ist ein Fehler aufgetreten.<br>Bitte versuchen Sie es später erneut oder kontaktieren Sie uns direkt unter ' . esc_html($empfaenger_email) . '</div>';
         }
@@ -507,6 +558,9 @@ TELEFON:
 
 E-MAIL:
 {$email}
+
+VALIDIERUNGSCODE:
+{$_POST['validierung']}
 
 
 
